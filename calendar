@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# check to see that we have some args 
+[ $# -eq 0 ] && echo "No arguments supplied" && exit 1
+
+[ $# -lt 2 ] && echo "Not enough arguments (expecting at least 2)" && exit 1
+
+
+
+# if the .calendar folder doesn't exist, create it. 
+CAL_DIR=~/.calendar
+[ ! -d $CAL_DIR ] && mkdir $CAL_DIR && echo created folder
+
+case $1 in 
+  
+  create)
+    [ $# -lt 3 ] && echo "Not enough arguments! (usage: calendar create time length [title])" && exit 1
+
+    # The last argument is optional. If supplied, the title will come from this argument. Otherwise, the title will come from the first line of standard input. 
+    if [[ -n  "$4" ]]
+    then
+      title=$4
+      description=$(cat)
+    else
+      title=$(head -1)   
+    fi
+
+
+    startDate=$(gdate -d "$2" +%s)
+
+    # The date itself should be parsed with the date command (using date -d), and the length is specified in minutes and can be any positive integer.
+    [ $3 -lt 0 ] && echo "Duration must be a positive number." && exit 1   
+
+    endDate=$(($startDate+(($3*60))))
+
+    # If event already exists at that time, an error message should be printed to stderr and the command should exit with a non-zero exit status.
+    [ -e $CAL_DIR/$startDate ] && echo "Event already exists" >&2 && exit 1
+
+
+    printf "$startDate\n$endDate\n$title\n$description\n" > $CAL_DIR/$startDate
+    echo $startDate
+    exit 0 
+    ;;
+
+  delete)
+    # If the event exists and is successfully deleted, the exit status should be 0. 
+    # If the event does not exist, the exit status should be 1. 
+    # If any other error occurs, the exit status should be 2.
+    [ -e $CAL_DIR/$startDate ]  && exit 1
+    rm -rf $CAL_DIR/$2 
+    exit $?
+    ;;
+
+  show)
+
+    [ $# -lt 3 ] && set $1 $2 'time' title description
+    
+    f=()
+    while IFS= read -r aline; do f+=("$aline") ; done < $CAL_DIR/$2 
+    
+    for var in "$@"
+    do
+      case $var in
+      title)
+        echo ${f[2]}
+      ;;
+      description)
+        echo ${f[3]}
+      ;;
+      time)
+        echo $(gdate -d "@${f[0]}") to $(gdate -d "@${f[1]}")
+      ;;
+      esac 
+    done
+
+
+   
+    ;;
+
+  link)
+    echo command
+    ;;
+
+  export)
+    echo exp command
+    ;;
+
+esac
+
+
