@@ -1,15 +1,18 @@
 #!/bin/bash
 
+# A simple calendar app for Bash
+# Author: Jason Seminara
+# Date: 2015-11-07
+
 # check to see that we have some args 
 [ $# -eq 0 ] && echo "No arguments supplied" && exit 1
-
 [ $# -lt 2 ] && echo "Not enough arguments (expecting at least 2)" && exit 1
-
 
 
 # if the .calendar folder doesn't exist, create it. 
 CAL_DIR=~/.calendar
 [ ! -d $CAL_DIR ] && mkdir $CAL_DIR && echo created folder
+
 
 case $1 in 
   
@@ -52,33 +55,38 @@ case $1 in
     ;;
 
   show)
-
+    
+    # If no argument is specified, all of these should be shown.
     [ $# -lt 3 ] && set $1 $2 'time' title description
     
+    # Split file on \n and read into an array
     f=()
     while IFS= read -r aline; do f+=("$aline") ; done < $CAL_DIR/$2 
     
+    # walk over the args and output the requested attr of the cal file
     for var in "$@"
     do
       case $var in
+      
       title)
         echo ${f[2]}
       ;;
+
       description)
         echo ${f[3]}
       ;;
+      
       time)
         echo $(gdate -d "@${f[0]}") to $(gdate -d "@${f[1]}")
       ;;
+      
       esac 
     done
-
-
-   
     ;;
 
   link)
-    echo command
+    
+    
     ;;
 
   export)
