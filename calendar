@@ -49,7 +49,7 @@ case $1 in
     # If the event exists and is successfully deleted, the exit status should be 0. 
     # If the event does not exist, the exit status should be 1. 
     # If any other error occurs, the exit status should be 2.
-    [ -e $CAL_DIR/$startDate ]  && exit 1
+    [ ! -e $CAL_DIR/$startDate ]  && exit 1
     rm -rf $CAL_DIR/$2 
     exit $?
     ;;
@@ -59,6 +59,8 @@ case $1 in
     # If no argument is specified, all of these should be shown.
     [ $# -lt 3 ] && set $1 $2 'time' title description
     
+    [ ! -e $CAL_DIR/$2 ] && exit 1
+
     # Split file on \n and read into an array
     f=()
     while IFS= read -r aline; do f+=("$aline") ; done < $CAL_DIR/$2 
@@ -85,12 +87,70 @@ case $1 in
     ;;
 
   link)
-    
-    
+
+    # die if the destination doesn't exist or the current file already exists
+    [ ! -e "/Users/$2/.calendar/$3" ] && echo "~$2/.calendar/$3" && exit 1
+    ln -s "/Users/$2/.calendar/$3" $CAL_DIR/$3
+    exit $?
     ;;
 
-  export)
-    echo exp command
+  export) 
+    user_id=$USER
+    [ $# -lt 3 ] && echo "Not enough arguments (expecting at least 4)" && exit 1
+    
+    # If we've been given the 2nd param (userID), then update the userID and shift the params by one more
+    [ $# -eq 4 ] && user_id=$2 && shift 1  
+    
+    # this is to expose the last two params
+    shift 1
+    startDate=$(gdate -d "$1" +%s)
+    endDate=$(gdate -d "$2" +%s)
+
+    files=($(ls -1 /Users/$user_id/.calendar | tr '\n' ' '))
+
+    vcards="BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Open Source Tools//Calendar for $user_id//EN
+"
+    for file in "${files[@]}"
+    do
+
+      f=()
+      while IFS= read -r aline; do f+=("$aline") ; done < /Users/$user_id/.calendar/$file 
+      echo $f
+      utc_startDate=$(gdate -d "@${f[0]}" -u +%Y%m%dT%H%M%SZ)
+      utc_endDate=$(gdate -d "@${f[1]}" -u +%Y%m%dT%H%M%SZ)
+
+      vcards+="BEGIN:VEVENT
+UID:${user_id}_${file}
+DTSTAMP:${utc_startDate}
+ORGANIZER;CN=$user_id:MAILTO:$user_id@cims.nyu.edu
+DTSTART:${utc_startDate}
+DTEND:${utc_endDate}
+SUMMARY:${f[2]}
+DESCRIPTION:${f[3]}
+END:VEVENT
+"
+    done
+vcards+="END:VCALENDAR"
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # echo "$vcards"
     ;;
 
 esac
