@@ -32,15 +32,14 @@ case $1 in
     then
       title=$(head -1)
     else
+
       # we have a 4th param
       # if we have stin, it's the description
-      if [ ! -t 0 ]
-      then
-        title=$4
-        description=$(cat)
-      fi
-    fi
+      title=$4
+      [ ! -t 0 ] && description=$(cat)
 
+    fi
+    
     # The date itself should be parsed with the date command (using date -d), and the length is specified in minutes and can be any positive integer.
     [ $3 -lt 0 ] && echo "Duration must be a positive number." && exit 1   
 
@@ -100,7 +99,7 @@ case $1 in
   link)
 
     # die if the destination doesn't exist or the current file already exists
-    [ ! -e "/Users/$2/.calendar/$3" ] && echo "~$2/.calendar/$3" && exit 1
+    [ ! -e "/Users/$2/.calendar/$3" ] && exit 1
     ln -s "/Users/$2/.calendar/$3" $CAL_DIR/$3
     exit $?
     ;;
