@@ -17,29 +17,40 @@ CAL_DIR=~/.calendar
 case $1 in 
   
   create)
+    # die if the args are insufficient
     [ $# -lt 3 ] && echo "Not enough arguments! (usage: calendar create time length [title])" && exit 1
+    
+    # if there's no stin and no 4th param - die 
+    [ -t 0 ] && [ $# -lt 4 ] && echo Must provide a title && exit 1
+    
+    # 
+    description=''
 
     # The last argument is optional. If supplied, the title will come from this argument. Otherwise, the title will come from the first line of standard input. 
-    if [[ -n  "$4" ]]
+    # if we don't have a 4th param, look for the stin
+    if [ $# -lt 4 ]
     then
-      title=$4
-      description=$(cat)
+      title=$(head -1)
     else
-      title=$(head -1)   
+      # we have a 4th param
+      # if we have stin, it's the description
+      if [ ! -t 0 ]
+      then
+        title=$4
+        description=$(cat)
+      fi
     fi
-
-
-    startDate=$(gdate -d "$2" +%s)
 
     # The date itself should be parsed with the date command (using date -d), and the length is specified in minutes and can be any positive integer.
     [ $3 -lt 0 ] && echo "Duration must be a positive number." && exit 1   
 
+    startDate=$(gdate -d "$2" +%s)
     endDate=$(($startDate+(($3*60))))
 
     # If event already exists at that time, an error message should be printed to stderr and the command should exit with a non-zero exit status.
     [ -e $CAL_DIR/$startDate ] && echo "Event already exists" >&2 && exit 1
 
-
+    # Pretty-print the results
     printf "$startDate\n$endDate\n$title\n$description\n" > $CAL_DIR/$startDate
     echo $startDate
     exit 0 
