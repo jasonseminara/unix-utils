@@ -105,24 +105,37 @@ case $1 in
     shift 1
     startDate=$(gdate -d "$1" +%s)
     endDate=$(gdate -d "$2" +%s)
-
-    files=($(ls -1 /Users/$user_id/.calendar | tr '\n' ' '))
-
-    vcards="BEGIN:VCALENDAR
+    
+    # set up the vcard layout
+    vcard_header="BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Open Source Tools//Calendar for $user_id//EN
 "
-    for file in "${files[@]}"
-    do
+vcard_footer="END:VCALENDAR"
+vcard_body=''
 
+
+  
+    # walk over the files in the user's directory, reci
+    for path in /Users/$user_id/.calendar/*
+    do
+      # get the filename from the path
+      filename="${path##*/}"
+
+      # continue here if the date is outside the range, or if the file is empty or a symlink is broken 
+      ([ "$filename" -le "$startDate" ] || [ "$filename" -ge "$endDate" ] || [ ! -s "$path" ] ) && continue
+      
+      # create an array of the each of the file datae
       f=()
-      while IFS= read -r aline; do f+=("$aline") ; done < /Users/$user_id/.calendar/$file 
-      echo $f
+      while IFS= read -r line; do f+=("$line") ; done < $path  
+
+      # so the code doesn't get ugly below, let's make our UTC-floating time-strings here
       utc_startDate=$(gdate -d "@${f[0]}" -u +%Y%m%dT%H%M%SZ)
       utc_endDate=$(gdate -d "@${f[1]}" -u +%Y%m%dT%H%M%SZ)
 
-      vcards+="BEGIN:VEVENT
-UID:${user_id}_${file}
+      # build the vcard_body
+      vcard_body+="BEGIN:VEVENT
+UID:${user_id}_${f[0]}
 DTSTAMP:${utc_startDate}
 ORGANIZER;CN=$user_id:MAILTO:$user_id@cims.nyu.edu
 DTSTART:${utc_startDate}
@@ -132,25 +145,8 @@ DESCRIPTION:${f[3]}
 END:VEVENT
 "
     done
-vcards+="END:VCALENDAR"
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # echo "$vcards"
+    echo "$vcard_header""$vcard_body""$vcard_footer"
     ;;
 
 esac
